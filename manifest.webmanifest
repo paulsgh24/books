@@ -1,7 +1,8 @@
 {
   "name": "Bücher",
   "short_name": "App",
-  "start_url": "/index.html",
+  "start_url": "/books/index.html",
+  "scope": "/books/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",

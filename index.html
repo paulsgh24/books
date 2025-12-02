@@ -5,8 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
 <link rel="manifest" href="manifest.webmanifest">
-<script>if ('serviceWorker' in navigator) {navigator.serviceWorker.register('/sw.js');}</script>
-<meta name="robots" content="noindex, nofollow">
+<script>if ('serviceWorker' in navigator) {navigator.serviceWorker.register('/books/sw.js');}</script><meta name="robots" content="noindex, nofollow">
 
 <title>Bücher</title>
 
@@ -217,9 +216,9 @@ let authorData = [], booksMap = {};
 applyMode();
 
 Promise.all([
-  fetch('https://raw.githubusercontent.com/paulsgh24/json-host/refs/heads/main/books.json')
+  fetch('https://raw.githubusercontent.com/paulsgh24/books/main/json/books.json.json')
     .then(r => r.json()),
-  fetch('https://raw.githubusercontent.com/paulsgh24/json-host/refs/heads/main/authors.json')
+  fetch('https://raw.githubusercontent.com/paulsgh24/books/main/json/authors.json')
     .then(r => r.json())
 ]).then(([books,authors])=>{
   authorData = authors||[];
