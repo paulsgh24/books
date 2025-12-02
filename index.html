@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<link rel="manifest" href="manifest.webmanifest">
+<script>if ('serviceWorker' in navigator) {navigator.serviceWorker.register('/sw.js');}</script>
+<meta name="robots" content="noindex, nofollow">
+
+<title>Bücher</title>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/2.0.8/css/dataTables.dataTables.min.css">
+<script src="https://cdn.datatables.net/2.0.8/js/dataTables.min.js"></script>
+
+<style>
+:root { --panel-min-width: 300px; --panel-max-ratio: 0.8; }
+body { font-family: 'Open Sans', sans-serif; padding:0;margin:0; transition: background-color .3s, color .3s; }
+h1 { font-size: 2.2rem; font-weight:700; display:flex; align-items:center; gap:15px; margin:16px 20px; }
+h1 a { font-size:1.6rem; margin-left:10px; text-decoration:none; color:inherit; }
+#darkModeButton {
+  margin-left:auto;
+  border:none;
+  background:none;
+  cursor:pointer;
+  padding:6px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:inherit;
+}
+#darkModeButton svg {
+  width: 24px;      /* feste Breite */
+  height: 24px;     /* feste Höhe */
+  stroke-width: 2;  /* ggf. einheitlicher Strich */
+}
+#darkModeButton {
+  margin-left:auto;
+  border:none;
+  background:none;      /* kein Hintergrund */
+  cursor:pointer;
+  padding:6px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:inherit;        /* Symbolfarbe wie Text */
+  position:absolute;     /* oben rechts */
+  top:16px;
+  right:20px;
+  z-index:1001;
+}
+#darkModeButton svg { display:block; }
+/* Dark Mode Anpassung */
+body.dark #darkModeButton {
+  background:none;      /* kein Hintergrund im Dark Mode */
+  color:#fff;        /* helles Symbol */
+}
+
+.column-options { margin:10px 20px 18px; }
+.column-options label { margin-right:10px; font-weight:normal; }
+table { width: calc(100% - 40px); margin:0 20px 20px; border-collapse:collapse; table-layout:auto; }
+th, td { text-align:left; padding:6px; vertical-align: middle; word-break: break-word; white-space: normal; min-width:35px; }
+.list-cover { width:40px; height:60px; object-fit:cover; margin-right:8px; vertical-align:middle; display:inline-block; }
+.author-link { color: black; text-decoration:none; cursor:pointer; display:block; transition:text-decoration .2s; }
+.author-link:hover { text-decoration:underline; }
+body.dark .author-link { color:white; }
+
+.detail-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.4); z-index:1000; }
+.detail-panel { background:#fff; width:40%; max-width:900px; min-width:var(--panel-min-width); height:100vh; box-sizing:border-box; overflow-y:auto; box-shadow:-3px 0 8px rgba(0,0,0,0.2); padding:20px; position:fixed; right:0; top:0; transition:all .2s ease; }
+.resize-handle { position:absolute; left:-6px; top:0; width:12px; height:100%; cursor:ew-resize; z-index:1500; }
+#closeDetail { position:absolute; top:10px; right:15px; font-size:24px; cursor:pointer; }
+.book-title { font-size:1.5rem; font-weight:700; margin-bottom:0.3rem; text-align:center; }
+.author { font-size:1.1rem; margin-bottom:0.5rem; text-align:center; cursor:pointer; }
+.details-container { display:flex; gap:20px; margin-top:10px; }
+.details-left { flex:1; }
+.details-right { flex-shrink: 0; display: flex; align-items: flex-start; justify-content:center; }
+.book-description { margin-top:0.8rem; line-height:1.5; text-align:justify; background: rgba(0,0,0,0.04); padding:10px; border-radius:6px; }
+.author-image { width:100%; height:auto; display:block; margin-bottom:15px; box-shadow:0 0 5px rgba(0,0,0,0.3); }
+.author-name { font-size:2rem; font-weight:bold; text-align:center; margin-bottom:15px; }
+@media(max-width:1000px){ th, td { min-width:30px; } .detail-panel { width:48%; } }
+@media(max-width:700px){
+  th, td { min-width:25px; font-size:0.95rem; }
+  .detail-panel { width:100%; min-width:100%; max-width:100%; right:0; }
+  .details-container { flex-direction:column; }
+  #bookTable, #bookTable thead, #bookTable tbody, #bookTable th, #bookTable td, #bookTable tr { display:block; }
+  #bookTable thead tr { display:none; }
+  #bookTable tbody tr { margin-bottom:15px; border-bottom:1px solid #ccc; padding-bottom:8px; }
+  #bookTable td { display:flex; flex-direction:row; align-items:flex-start; gap:0.5rem; padding-left:0.5rem; padding-top:0.5rem; position:relative; text-align:left; border:none !important; }
+  #bookTable td::before { content: attr(data-label); flex:0 0 35%; font-weight:bold; white-space:normal; word-wrap:break-word; border:none !important; }
+  #bookTable td img.list-cover { flex:0 0 auto; width:90px; height:auto; max-height:150px; object-fit:cover; }
+  #bookTable td img { flex:0 0 auto; width:auto; height:50px; object-fit:contain; }
+  #bookTable td > * { flex:1; }
+}
+
+body.dark { background-color:#121212; color:#e0e0e0; }
+body.dark #darkModeButton { background:none; color:#fff; }
+body.dark .detail-panel { background:#1e1e1e; color:#e0e0e0; }
+body.dark .book-description, body.dark .author-books a.book-link-detail { background: rgba(255,255,255,0.04); }
+#bookTable, #authorTable { border-collapse:collapse; width:100%; }
+#bookTable th, #bookTable td, #authorTable th, #authorTable td { border-bottom:1px solid #ccc; padding:8px; }
+body.dark #bookTable th, body.dark #bookTable td, body.dark #authorTable th, body.dark #authorTable td { border-bottom:1px solid #555; }
+#bookTable tbody tr:hover { background-color: rgba(0,0,0,0.05); }
+body.dark #bookTable tbody tr:hover { background-color: rgba(255,255,255,0.05); }
+
+.author-books { margin-top: 1rem; }
+.author-books a.book-link-detail { display: block; font-weight: bold; text-decoration: none; margin-bottom: 0.5rem; color: black; transition: text-decoration 0.2s, color 0.2s; }
+body.dark .author-books a.book-link-detail { color: white; }
+.author-books a.book-link-detail:hover { text-decoration: underline; }
+
+/* === TOPBAR: Suche + Info rechtsbündig === */
+.topbar {
+  display: flex !important;
+  justify-content: flex-end !important; /* rechtsbündig */
+  align-items: center;
+  gap: 10px;
+  margin: 0 20px 10px;
+  box-sizing: border-box;
+}
+
+/* Filter (Suchfeld) Label sauber darstellen */
+.topbar .dataTables_filter {
+  margin: 0;
+  padding: 0;
+}
+.topbar .dataTables_filter label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* Info-Text (1 bis X von X) */
+.topbar .dataTables_info {
+  margin: 0 0 0 8px;
+  white-space: nowrap;
+  padding: 0;
+}
+
+/* Optional: Eingabefeld nicht zu breit machen */
+.topbar .dataTables_filter input {
+  max-width: 260px;
+  width: auto;
+}
+
+/* === Hintergrundfarbe Bereich über Tabelle === */
+body, h1, .column-options, .topbar {
+  background-color: #FCFCFC; /* Light Mode Standard */
+  color: #000; /* Text schwarz im Light Mode */
+  transition: background-color .3s, color .3s;
+}
+body.dark, body.dark h1, body.dark .column-options, body.dark .topbar {
+  background-color: #212330; /* Dark Mode */
+  color: #fff; /* Text weiß im Dark Mode */
+}
+
+/* === Tabellenhintergrund inkl. Überschriften === */
+#bookTable_wrapper, #bookTable, #bookTable th, #bookTable td {
+  background-color: #EAEDFC; /* Light Mode */
+  color: #000;
+  transition: background-color .3s, color .3s;
+}
+body.dark #bookTable_wrapper,
+body.dark #bookTable,
+body.dark #bookTable th,
+body.dark #bookTable td {
+  background-color: #171A23; /* Dark Mode */
+  color: #fff;
+}
+
+/* Optional: Hover-Effekt für Zeilen */
+#bookTable tbody tr:hover {
+  background-color: rgba(0,0,0,0.05); /* Light Mode */
+}
+body.dark #bookTable tbody tr:hover {
+  background-color: rgba(255,255,255,0.05); /* Dark Mode */
+}
+
+</style>
+</head>
+<body>
+<h1>
+Bücher
+<a href="authors.html">Autoren</a>
+<a href="series.html">Reihen</a>
+</h1>
+
+<button id="darkModeButton"></button>
+
+<div class="column-options">
+<label><input type="checkbox" class="colToggle" data-col="b_series"> Reihe</label>
+<label><input type="checkbox" class="colToggle" data-col="b_genres"> Genres</label>
+<label><input type="checkbox" class="colToggle" data-col="b_year"> Jahr</label>
+<label><input type="checkbox" class="colToggle" data-col="b_length"> Länge</label>
+<label><input type="checkbox" class="colToggle" data-col="b_narrator"> Sprecher</label>
+</div>
+
+<table id="bookTable" class="display"></table>
+
+<div id="detailOverlay" class="detail-overlay">
+  <div id="detailPanel" class="detail-panel">
+    <div class="resize-handle" title="Breite anpassen"></div>
+    <span id="closeDetail">&times;</span>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<script>
+const DARK_KEY = "app_dark_mode_v1";
+const PANEL_WIDTH_KEY = "book_panel_width_v1";
+let darkMode = localStorage.getItem(DARK_KEY) === "true";
+const detailPanel = document.getElementById("detailPanel");
+const savedWidth = localStorage.getItem(PANEL_WIDTH_KEY);
+if(savedWidth) detailPanel.style.width = savedWidth+"px";
+let authorData = [], booksMap = {};
+applyMode();
+
+Promise.all([
+  fetch('https://raw.githubusercontent.com/paulsgh24/json-host/refs/heads/main/books.json')
+    .then(r => r.json()),
+  fetch('https://raw.githubusercontent.com/paulsgh24/json-host/refs/heads/main/authors.json')
+    .then(r => r.json())
+]).then(([books,authors])=>{
+  authorData = authors||[];
+  books.forEach(b=>booksMap[b.b_id]=b);
+  initTable(books||[]);
+}).catch(err=>console.error(err));
+
+function escapeHtml(str){ if(!str) return ""; return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
+function encodeNameForFile(name){ if(!name) return ""; return encodeURIComponent(String(name)); }
+
+function initTable(data){
+  const columns = [
+    { title:"Titel", data:"b_titel", render:(d,type,row)=>{
+        let cover="";
+        if(row && row.b_titel && row.b_author){
+          const fileName=`${encodeNameForFile(row.b_titel)}_${encodeNameForFile(row.b_author)}_${encodeNameForFile(row.b_typ)}.jpg`;
+          cover=`<img class="list-cover" src="img/book/${fileName}" onerror="this.remove()" alt="Cover">`;
+        }
+        return `<div style="display:flex; align-items:center;">${cover}<span>${escapeHtml(row.b_titel)}</span></div>`;
+    }},
+    { title:"Autoren", data:"b_author_id", render:(ids,type,row)=>{
+        if(!ids) return "";
+        return ids.split(",").map(id=>{
+          const a=authorData.find(x=>String(x.a_id).trim()===id.trim());
+          return a?`<span class="author-link" data-id="${escapeHtml(a.a_id)}">${escapeHtml(a.a_fullname)}</span>`:"";
+        }).join("");
+    }},
+    {
+      title: "Typ",
+      data: "b_typ",
+      type: "string",
+      render: function(typ, type, row) {
+
+        // Sort + Filter = Klartext
+        if (type === 'sort' || type === 'filter') return typ || '';
+
+        if (!typ) return '';
+        const p = "img/symbol/" + encodeURIComponent(String(typ).toLowerCase()) + ".png";
+        return `<img src="${p}" width="24" height="24" style="vertical-align:middle;" alt="${escapeHtml(typ)}">`;
+      }
+    },
+    { title:"Reihe", data:"b_series", visible:false },
+    { title:"Nr.", data:"b_series_no", visible:false },
+    { title:"Genres", data:"b_genres", visible:false },
+    { title:"Jahr", data:"b_year", visible:false },
+    { title:"Länge", data:"b_length", visible:false },
+    { title:"Beschreibung", data:"b_description", visible:false },
+    { title:"Sprecher", data:"b_narrator", visible:false },
+    { title:"ID", data:"b_id", visible:false }
+  ];
+  columns.forEach(col => {
+    col.createdCell = function (td, cellData, rowData, row, colIdx) {
+      td.setAttribute('data-label', col.title);
+    };
+  });
+  if($.fn.DataTable.isDataTable("#bookTable")) { $("#bookTable").DataTable().clear().destroy(); $("#bookTable").empty(); }
+  const table = new DataTable("#bookTable", {
+    data,
+    columns,
+    order: [[0, "asc"]],
+    paging: false,
+    autoWidth: false,
+    // dom: platziert oben einen .topbar-Container mit f (filter) und i (info)
+    dom: "<'topbar'fi>rt",
+    language: {
+      url: "https://cdn.datatables.net/plug-ins/2.0.8/i18n/de-DE.json"
+    }
+  });
+
+  $(".colToggle").prop("checked", false);
+  $(".colToggle").on("change",function(){
+    const colName=$(this).data("col");
+    const idxs=table.columns().indexes().filter(i=>table.column(i).dataSrc()===colName);
+    const colIdx=idxs.length?idxs[0]:undefined;
+    if(typeof colIdx!=="undefined") table.column(colIdx).visible(this.checked);
+  });
+
+  $("#bookTable tbody").on("click","tr",function(){
+    const book = table.row(this).data();
+    if(book) showBookDetail(book);
+  });
+
+  $("#bookTable tbody").on("click",".author-link",function(e){
+    e.stopPropagation();
+    const aid=$(this).data("id");
+    const author=authorData.find(a=>String(a.a_id)===String(aid));
+    if(author) showAuthorDetail(author);
+  });
+
+  window.addEventListener("resize",()=>{ try{ table.columns.adjust(); } catch{} });
+}
+
+// -------- Overlays --------
+function showBookDetail(book){
+  const detailContent=document.getElementById("detailContent");
+  detailContent.innerHTML="";
+  document.getElementById("darkModeButton").style.display="none";
+
+  if(book.b_titel && book.b_author){
+    const img=document.createElement("img");
+    const fileName=`${encodeNameForFile(book.b_titel)}_${encodeNameForFile(book.b_author)}_${encodeNameForFile(book.b_typ)}.jpg`;
+    img.src=`img/book/${fileName}`;
+    img.alt="Cover";
+    img.style.width="100%";
+    img.onerror=()=>img.remove();
+    detailContent.appendChild(img);
+  }
+
+  const titleDiv=document.createElement("div");
+  titleDiv.className="book-title";
+  titleDiv.textContent=book.b_titel||"";
+  detailContent.appendChild(titleDiv);
+
+  const authorsDiv=document.createElement("div");
+  authorsDiv.className="author";
+  if(book.b_author_id){
+    authorsDiv.innerHTML=book.b_author_id.split(",").map(id=>{
+      const a=authorData.find(x=>String(x.a_id).trim()===id.trim());
+      return a?`<span class="author-link" data-id="${escapeHtml(a.a_id)}">${escapeHtml(a.a_fullname)}</span>`:"";
+    }).join("");
+  } else authorsDiv.textContent=book.b_author||"";
+  detailContent.appendChild(authorsDiv);
+
+  const container=document.createElement("div"); 
+  container.className="details-container";
+
+  const leftDiv=document.createElement("div"); 
+  leftDiv.className="details-left";
+  leftDiv.style.flex = "0 0 60%";
+
+  const rightDiv=document.createElement("div"); 
+  rightDiv.className="details-right";
+  rightDiv.style.flex = "0 0 40%";
+  rightDiv.style.display = "flex";
+  rightDiv.style.justifyContent = "center";
+  rightDiv.style.alignItems = "flex-start";
+
+  const fields={Reihe:book.b_series, Nummer:book.b_series_no, Jahr:book.b_year, Länge:book.b_length, Genres:book.b_genres, Sprecher:book.b_narrator};
+  for(const key in fields){
+      if(fields[key] && String(fields[key]).trim()!==""){
+          const div=document.createElement("div"); 
+          div.innerHTML=`<strong>${key}:</strong> ${escapeHtml(fields[key])}`; 
+          leftDiv.appendChild(div); 
+      }
+  }
+
+  if(book.b_typ){ 
+      const img=document.createElement("img"); 
+      img.src="img/symbol/"+encodeURIComponent(String(book.b_typ).toLowerCase())+".png"; 
+      img.alt="Typ";
+      img.width = 72; img.height = 72;
+      img.style.height="auto";
+      img.onerror=()=>img.remove();
+      rightDiv.appendChild(img); 
+  }
+
+  container.appendChild(leftDiv); 
+  container.appendChild(rightDiv); 
+  detailContent.appendChild(container);
+
+  if(book.b_description && book.b_description.trim()!==""){ const desc=document.createElement("div"); desc.className="book-description"; desc.textContent=book.b_description; detailContent.appendChild(desc); }
+
+  document.getElementById("detailOverlay").style.display="block";
+
+  authorsDiv.querySelectorAll(".author-link").forEach(el=>el.addEventListener("click",e=>{
+    e.stopPropagation();
+    const authorId=el.getAttribute("data-id");
+    const author=authorData.find(a=>String(a.a_id)===String(authorId));
+    if(author) showAuthorDetail(author);
+  }));
+}
+
+function showAuthorDetail(author){
+  const detailContent=document.getElementById("detailContent");
+  detailContent.innerHTML="";
+  document.getElementById("darkModeButton").style.display="none";
+
+  if(author.a_fullname){
+    const img=document.createElement("img");
+    img.src=`img/author/${encodeNameForFile(author.a_fullname)}.jpg`;
+    img.alt="Autor"; img.className="author-image"; img.onerror=()=>img.remove();
+    detailContent.appendChild(img);
+  }
+
+  const nameDiv=document.createElement("div"); nameDiv.className="author-name"; nameDiv.textContent=author.a_fullname||""; detailContent.appendChild(nameDiv);
+
+  const authorBooks=Object.values(booksMap).filter(book=>book.b_author_id && book.b_author_id.split(",").map(z=>z.trim()).includes(String(author.a_id)));
+  if(authorBooks.length){
+    const booksDiv=document.createElement("div"); booksDiv.className="author-books";
+      authorBooks.forEach(book=>{
+        const link=document.createElement("a");
+        link.href="#"; 
+        link.className="book-link-detail";
+        link.addEventListener("click", e=>{
+          e.preventDefault();
+          showBookDetail(book);
+        });
+
+        // Typ-Symbol
+        const img=document.createElement("img");
+        img.src=`img/symbol/${encodeURIComponent(book.b_typ)}.png`;
+        img.width=22; img.height=22;
+        img.style.marginRight="6px";
+        img.style.verticalAlign="middle";
+        img.onerror=()=>img.remove();
+
+        // Titel-Text
+        const span=document.createElement("span");
+        span.textContent = book.b_titel;
+
+        link.appendChild(img);
+        link.appendChild(span);
+
+        booksDiv.appendChild(link);
+      });
+    detailContent.appendChild(booksDiv);
+  }
+
+  if(author.a_biografie && author.a_biografie.trim()!==""){ const bio=document.createElement("div"); bio.className="book-description"; bio.textContent=author.a_biografie; detailContent.appendChild(bio); }
+
+  document.getElementById("detailOverlay").style.display="block";
+}
+
+// Overlay close & dark mode
+document.getElementById("closeDetail").addEventListener("click", ()=>{
+  document.getElementById("detailOverlay").style.display="none";
+  document.getElementById("darkModeButton").style.display="block";
+});
+document.getElementById("detailOverlay").addEventListener("click", e=>{
+  if(e.target===document.getElementById("detailOverlay")){
+    document.getElementById("detailOverlay").style.display="none";
+    document.getElementById("darkModeButton").style.display="block";
+  }
+});
+document.getElementById("darkModeButton").addEventListener("click", ()=>{
+  darkMode=!darkMode;
+  localStorage.setItem(DARK_KEY,darkMode);
+  applyMode();
+});
+function applyMode(){
+  document.body.classList.toggle("dark",darkMode);
+  const btn=document.getElementById("darkModeButton");
+  btn.innerHTML=darkMode
+    ? `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`
+    : `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"></path></svg>`;}
+
+// Panel resize
+(function enablePanelResize(){
+  const panel=document.getElementById("detailPanel");
+  const handle=panel.querySelector(".resize-handle");
+  let startX, startWidth;
+  handle.addEventListener("mousedown", e=>{
+    startX=e.clientX;
+    startWidth=panel.offsetWidth;
+    document.documentElement.addEventListener("mousemove", onMouseMove);
+    document.documentElement.addEventListener("mouseup", onMouseUp);
+  });
+  function onMouseMove(e){
+    let newWidth=startWidth-(e.clientX-startX);
+    const maxW=window.innerWidth*0.8;
+    if(newWidth<300) newWidth=300;
+    if(newWidth>maxW) newWidth=maxW;
+    panel.style.width=newWidth+"px";
+  }
+  function onMouseUp(){
+    localStorage.setItem(PANEL_WIDTH_KEY,panel.offsetWidth);
+    document.documentElement.removeEventListener("mousemove",onMouseMove);
+    document.documentElement.removeEventListener("mouseup",onMouseUp);
+  }
+})();
+</script>
+</body>
+</html>

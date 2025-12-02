@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+
+<link rel="manifest" href="manifest.webmanifest">
+<script>if ('serviceWorker' in navigator) {navigator.serviceWorker.register('/sw.js');}</script>
+<meta name="robots" content="noindex, nofollow">
+
+<title>Reihen</title>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/2.0.8/css/dataTables.dataTables.min.css">
+<script src="https://cdn.datatables.net/2.0.8/js/dataTables.min.js"></script>
+
+<style>
+/* =========================================================
+   HEADER + BASIC
+========================================================= */
+body, h1, header {
+  margin:0;
+  font-family:'Open Sans', sans-serif;
+  transition: background-color .3s, color .3s;
+}
+
+header {
+  display:flex;
+  align-items:center;
+  gap:16px;
+  padding:20px;
+  background-color:#FCFCFC;
+  color:#000;
+}
+body.dark header {
+  background-color:#212330;
+  color:#fff;
+}
+
+header h1 { margin:0; font-size:2.2rem; }
+
+.nav-links { margin-left:12px; font-size:1.6rem; }
+.nav-links a { margin-left:12px; text-decoration:none; color:inherit; font-weight:600; }
+.nav-links a:hover { text-decoration:underline; }
+
+#darkModeButton {
+  margin-left:auto;
+  border:none;
+  background:none;
+  cursor:pointer;
+  padding:6px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:inherit;
+}
+#darkModeButton svg {
+  width: 24px;      /* feste Breite */
+  height: 24px;     /* feste Höhe */
+  stroke-width: 2;  /* ggf. einheitlicher Strich */
+}
+
+/* =========================================================
+   FILTER-BAR
+========================================================= */
+.header-filter {
+  display:flex;
+  justify-content:flex-end;
+  margin-bottom:0;
+  padding:10px 20px;
+  background-color:#FCFCFC;
+  color:#000;
+  transition: background-color .3s, color .3s;
+}
+body.dark .header-filter { background-color:#212330; color:#fff; }
+
+/* =========================================================
+   TABLE STYLING
+========================================================= */
+#seriesTable_wrapper,
+#seriesTable,
+#seriesTable th,
+#seriesTable td {
+  background-color:#EAEDFC;
+  color:#000;
+  transition:background-color .3s, color .3s;
+}
+body.dark #seriesTable_wrapper,
+body.dark #seriesTable,
+body.dark #seriesTable th,
+body.dark #seriesTable td {
+  background-color:#171A23;
+  color:#fff;
+}
+
+#seriesTable th, #seriesTable td {
+  padding:8px 10px;
+  border-bottom:1px solid #444;
+}
+#seriesTable thead th { border-bottom:2px solid #444; }
+table.dataTable { width:100%; border-collapse:collapse; margin:0; }
+
+/* =========================================================
+   SERIES BOOK LIST
+========================================================= */
+.series-name { font-weight:700; }
+.book-line { display:flex; align-items:center; gap:8px; padding:6px 0; cursor:default; }
+.book-line .typicon { width:22px; height:22px; object-fit:contain; flex-shrink:0; }
+.book-line .series-no { color:inherit; opacity:0.8; width:40px; text-align:right; margin-right:6px; flex-shrink:0; }
+.book-line .btitle { cursor:pointer; color:inherit; text-decoration:none; font-size:1rem; font-weight:600; }
+.book-line .btitle:hover { text-decoration:underline; }
+
+/* =========================================================
+   DETAIL OVERLAYS
+========================================================= */
+.detail-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); z-index:1000; }
+.detail-panel { background:#fff; width:40%; max-width:900px; min-width:var(--panel-min-width); height:100vh; box-sizing:border-box; overflow-y:auto; box-shadow:-3px 0 8px rgba(0,0,0,0.2); padding:20px; position:fixed; right:0; top:0; transition:all .2s ease; }.resize-handle { position:absolute; left:-6px; top:0; width:12px; height:100%; cursor:ew-resize; z-index:1500; }
+.detail-close { position:absolute; top:10px; right:15px; font-size:24px; cursor:pointer; font-weight:700; color:inherit; background:none; border:none; }
+.panel-cover { width:100%; height:auto; display:block; margin-bottom:12px; border-radius:6px; }
+.panel-title { font-size:1.4rem; font-weight:700; margin-bottom:6px; text-align:left; }
+.panel-authors a.author-link { color:inherit; text-decoration:none; font-size:1.2rem; font-weight:600; }
+.panel-authors a.author-link:hover { text-decoration:underline; }
+.details-container { display:flex; gap:10px; margin-top:10px; }
+.details-left { flex:1; }
+.details-right { display:flex; align-items:flex-start; gap:10px; flex-shrink:0; }
+.descbox { margin-top:14px; background:#f4f4f4; padding:12px; border-radius:6px; line-height:1.45; }
+body.dark .detail-panel { background-color:#2B2F3B; color:#fff; }
+body.dark .descbox { background-color:#1F2128; color:#fff; }
+#bookPanel .panel-authors a.author-link { font-size:1.1rem; font-weight:600; display:inline-block; margin-top:4px; }
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+@media(max-width:700px){
+  #seriesTable, #seriesTable thead, #seriesTable tbody, #seriesTable th, #seriesTable td, #seriesTable tr { display:block; }
+  #seriesTable thead tr { display:none; }
+  #seriesTable tbody tr { margin-bottom:15px; border-bottom:1px solid #444; padding-bottom:8px; }
+  #seriesTable td { display:flex; flex-direction:row; align-items:flex-start; gap:0.5rem; padding-left:0.5rem; padding-top:0.5rem; position:relative; border:none !important; text-align:left; }
+  #seriesTable td::before { content: attr(data-label); flex:0 0 35%; font-weight:bold; white-space:normal; word-wrap:break-word; }
+  #seriesTable td[data-label="Bücher"] { flex-direction:column; align-items:flex-start; }
+  #seriesTable td[data-label="Bücher"] .book-line { margin-bottom:4px; }
+  .detail-panel { width:100%; min-width:100%; max-width:100%; right:0; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Reihen</h1>
+  <nav class="nav-links">
+    <a href="index.html">Bücher</a>
+    <a href="authors.html">Autoren</a>
+  </nav>
+  <button id="darkModeButton"></button>
+</header>
+
+<table id="seriesTable" class="display" style="width:100%">
+  <thead>
+    <tr><th>Reihen</th><th>Anzahl</th><th>Bücher</th></tr>
+  </thead>
+  <tbody></tbody>
+</table>
+
+<!-- OVERLAYS -->
+<div id="bookOverlay" class="detail-overlay">
+  <div id="bookPanel" class="detail-panel">
+    <div class="resize-handle"></div>
+    <span class="detail-close" id="closeBook">&times;</span>
+    <div id="bookContent"></div>
+  </div>
+</div>
+
+<div id="authorOverlay" class="detail-overlay">
+  <div id="authorPanel" class="detail-panel">
+    <div class="resize-handle"></div>
+    <span class="detail-close" id="closeAuthor">&times;</span>
+    <div id="authorContent"></div>
+  </div>
+</div>
+
+<script>
+/* =====================================
+   DARKMODE WITH SVG BUTTON
+===================================== */
+const DARK_KEY = "app_dark_mode_v1";
+let darkMode = localStorage.getItem(DARK_KEY) === "true";
+
+function applyMode() {
+  document.body.classList.toggle("dark", darkMode);
+  const btn = document.getElementById("darkModeButton");
+  btn.innerHTML = darkMode
+    ? `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`
+    : `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z"/></svg>`;}
+
+applyMode();
+
+document.getElementById("darkModeButton").addEventListener("click", () => {
+  darkMode = !darkMode;
+  localStorage.setItem(DARK_KEY, darkMode);
+  applyMode();
+});
+
+/* =====================================
+   HELPERS
+===================================== */
+function escapeHtml(s){return s==null?"":String(s).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;");}
+function bookById(id){if(!id) return null; id=String(id).trim(); return booksData.find(b=>String(b.b_id).trim()===id);}
+function authorById(id){if(!id) return null; id=String(id).trim(); return authorsData.find(a=>String(a.a_id).trim()===id);}
+
+/* =====================================
+   LOAD JSON + BUILD TABLE
+===================================== */
+let seriesData=[], booksData=[], authorsData=[];
+Promise.all([
+  fetch('https://raw.githubusercontent.com/paulsgh24/json-host/refs/heads/main/books.json')
+    .then(r => r.json()),
+  fetch('https://raw.githubusercontent.com/paulsgh24/json-host/refs/heads/main/authors.json')
+    .then(r => r.json()),
+  fetch('https://raw.githubusercontent.com/paulsgh24/json-host/refs/heads/main/series.json')
+    .then(r => r.json())
+])
+.then(([b, a, s]) => {
+  booksData = b || [];
+  authorsData = a || [];
+  seriesData = s || [];
+  buildTable();
+})
+.catch(e=>console.error(e));
+
+function buildTable(){
+  const rows = seriesData.map(s=>{
+    const have=(s.s_counthave??"").toString().trim();
+    const all=(s.s_countall??"").toString().trim();
+    const countDisplay = have!=="" ? (all===""?have:`${have} von ${all}`) : "";
+    let booksHtml="";
+    if(s.s_books && s.s_books.trim()!==""){
+      const objs = s.s_books.split(",").map(id=>bookById(id.trim())).filter(Boolean)
+        .sort((A,B)=>(Number(A.b_series_no)||999999)-(Number(B.b_series_no)||999999));
+      booksHtml=objs.map(b=>`<div class="book-line" data-bid="${escapeHtml(b.b_id)}">
+        <img class="typicon" src="img/symbol/${encodeURIComponent(b.b_typ)}.png" onerror="this.remove()">
+        <span class="series-no">${escapeHtml(b.b_series_no||"")}</span>
+        <span class="btitle" data-bid="${escapeHtml(b.b_id)}">${escapeHtml(b.b_titel)}</span>
+      </div>`).join("");
+    }
+    return { s_name_display:`<span class="series-name">${escapeHtml(s.s_name)}</span>`, countDisplay, booksHtml };
+  });
+
+  if($.fn.DataTable.isDataTable("#seriesTable")) $("#seriesTable").DataTable().clear().destroy();
+
+  new DataTable("#seriesTable", {
+    data: rows,
+    columns:[
+      {title:"Reihen", data:"s_name_display", createdCell:td=>td.setAttribute("data-label","Reihen")},
+      {title:"Anzahl", data:"countDisplay", orderable:false, createdCell:td=>td.setAttribute("data-label","Anzahl")},
+      {title:"Bücher", data:"booksHtml", orderable:false, createdCell:td=>td.setAttribute("data-label","Bücher")}
+    ],
+    order:[[0,"asc"]],
+    paging:false,
+    language:{url:"https://cdn.datatables.net/plug-ins/2.0.8/i18n/de-DE.json"},
+    autoWidth:false,
+    dom:'<"header-filter"f>rt'
+  });
+
+  $("#seriesTable tbody").off(".seriesLinks").on("click.seriesLinks",".btitle, .book-line", function(e){
+    e.stopPropagation(); e.preventDefault();
+    const $line=$(this).closest(".book-line");
+    const bid=String($line.attr("data-bid") || $(this).attr("data-bid")||"").trim();
+    if(!bid) return;
+    const book=bookById(bid);
+    if(book) showBook(book);
+  });
+}
+
+/* =====================================
+   OVERLAYS (BOOK + AUTHOR)
+===================================== */
+const bookOverlay=document.getElementById("bookOverlay"), bookPanel=document.getElementById("bookPanel"), bookContent=document.getElementById("bookContent");
+const authorOverlay=document.getElementById("authorOverlay"), authorPanel=document.getElementById("authorPanel"), authorContent=document.getElementById("authorContent");
+
+function showBook(b){
+  authorOverlay.style.display='none';
+  bookContent.innerHTML="";
+  if(b.b_titel && b.b_author){
+    const img=document.createElement("img"); img.src=`img/book/${b.b_titel}_${b.b_author}_${b.b_typ}.jpg`; img.className="panel-cover"; img.onerror=()=>img.remove(); bookContent.appendChild(img);
+  }
+  const title=document.createElement("div"); title.className="panel-title"; title.textContent=b.b_titel||""; bookContent.appendChild(title);
+  const authorsDiv=document.createElement("div"); authorsDiv.className="panel-authors";
+  if(b.b_author_id){
+    authorsDiv.innerHTML=b.b_author_id.split(",").map(id=>{const a=authorById(id.trim()); return a?`<a class="author-link" data-aid="${escapeHtml(a.a_id)}">${escapeHtml(a.a_fullname)}</a>`:"";}).join(", ");
+  } else authorsDiv.textContent=b.b_author||"";
+  bookContent.appendChild(authorsDiv);
+
+  const container=document.createElement("div"); container.className="details-container";
+  const left=document.createElement("div"); left.className="details-left";
+  const right=document.createElement("div"); right.className="details-right";
+  const fields={Reihe:b.b_series,Nummer:b.b_series_no,Jahr:b.b_year,Länge:b.b_length,Genres:b.b_genres,Sprecher:b.b_narrator};
+  for(const k in fields){if(fields[k]&&String(fields[k]).trim()!==""){const d=document.createElement("div"); d.innerHTML=`<strong>${k}:</strong> ${escapeHtml(fields[k])}`; left.appendChild(d);}}
+  if(b.b_typ){const img=document.createElement("img"); img.src=`img/symbol/${b.b_typ.toLowerCase()}.png`; img.width=72; img.height=72; right.appendChild(img);}
+  container.appendChild(left); container.appendChild(right); bookContent.appendChild(container);
+
+  if(b.b_description && b.b_description.trim()!==""){const desc=document.createElement("div"); desc.className="descbox"; desc.textContent=b.b_description; bookContent.appendChild(desc);}
+  bookOverlay.style.display='block';
+  bookContent.querySelectorAll(".author-link").forEach(el=>{el.addEventListener("click",ev=>{ev.stopPropagation(); const a=authorById(el.dataset.aid); if(a) showAuthor(a);});});
+}
+
+function showAuthor(a){
+  bookOverlay.style.display='none';
+  authorContent.innerHTML="";
+  if(a.a_fullname){const img=document.createElement("img"); img.src="img/author/"+a.a_fullname+".jpg"; img.className="panel-cover"; img.onerror=()=>img.remove(); authorContent.appendChild(img);}
+  const title=document.createElement("div"); title.className="panel-title"; title.textContent=a.a_fullname||""; authorContent.appendChild(title);
+
+  let bookIds=a.a_bookids?a.a_bookids.split(",").map(x=>x.trim()).filter(x=>x!==""):booksData.filter(b=>b.b_author_id&&String(b.b_author_id).split(",").map(z=>z.trim()).includes(a.a_id)).map(b=>b.b_id);
+  if(bookIds.length){
+    const div=document.createElement("div");
+    bookIds.map(bookById).filter(Boolean).forEach(b=>{
+      const line=document.createElement("div"); line.className="book-line"; line.dataset.bid=b.b_id;
+      const span=document.createElement("span"); span.className="btitle"; span.textContent=b.b_titel; span.dataset.bid=b.b_id; line.appendChild(span);
+      div.appendChild(line); line.addEventListener("click",()=>showBook(b)); span.addEventListener("click",()=>showBook(b));
+    });
+    authorContent.appendChild(div);
+  }
+
+  if(a.a_biografie && a.a_biografie.trim()!==""){const bio=document.createElement("div"); bio.className="descbox"; bio.textContent=a.a_biografie; authorContent.appendChild(bio);}
+  authorOverlay.style.display='block';
+}
+
+/* =====================================
+   CLOSES + RESIZE
+===================================== */
+document.getElementById("closeBook").onclick=()=>bookOverlay.style.display='none';
+document.getElementById("closeAuthor").onclick=()=>authorOverlay.style.display='none';
+bookOverlay.onclick=e=>{if(e.target===bookOverlay) bookOverlay.style.display='none';};
+authorOverlay.onclick=e=>{if(e.target===authorOverlay) authorOverlay.style.display='none';};
+
+function enableResize(panel){
+  const handle=panel.querySelector(".resize-handle"); if(!handle) return;
+  let startX,startW;
+  handle.onmousedown=e=>{
+    e.preventDefault(); startX=e.clientX; startW=parseInt(getComputedStyle(panel).width);
+    document.onmousemove=ev=>{let w=startW+startX-ev.clientX; w=Math.max(260,Math.min(w,window.innerWidth*0.9)); panel.style.width=w+"px";};
+    document.onmouseup=()=>{document.onmousemove=null; document.onmouseup=null;};
+  };
+}
+enableResize(bookPanel); enableResize(authorPanel);
+</script>
+
+</body>
+</html>
