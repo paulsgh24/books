@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
 <link rel="manifest" href="manifest.webmanifest">
-<script>if ('serviceWorker' in navigator) {navigator.serviceWorker.register('/books/sw.js');}</script><meta name="robots" content="noindex, nofollow">
+<script>if ('serviceWorker' in navigator) {navigator.serviceWorker.register('sw.js').then(() => console.log('Service Worker registered')).catch(console.error);}</script>
 
 <title>Bücher</title>
 
@@ -216,7 +216,7 @@ let authorData = [], booksMap = {};
 applyMode();
 
 Promise.all([
-  fetch('https://raw.githubusercontent.com/paulsgh24/books/main/json/books.json.json')
+  fetch('https://raw.githubusercontent.com/paulsgh24/books/main/json/books.json')
     .then(r => r.json()),
   fetch('https://raw.githubusercontent.com/paulsgh24/books/main/json/authors.json')
     .then(r => r.json())
@@ -256,7 +256,7 @@ function initTable(data){
         if (type === 'sort' || type === 'filter') return typ || '';
 
         if (!typ) return '';
-        const p = "img/symbol/" + encodeURIComponent(String(typ).toLowerCase()) + ".png";
+        const p = "img/symbol/" + encodeURIComponent(String(typ)) + ".png";
         return `<img src="${p}" width="24" height="24" style="vertical-align:middle;" alt="${escapeHtml(typ)}">`;
       }
     },
@@ -366,12 +366,13 @@ function showBookDetail(book){
   }
 
   if(book.b_typ){ 
-      const img=document.createElement("img"); 
-      img.src="img/symbol/"+encodeURIComponent(String(book.b_typ).toLowerCase())+".png"; 
-      img.alt="Typ";
-      img.width = 72; img.height = 72;
-      img.style.height="auto";
-      img.onerror=()=>img.remove();
+      const img = document.createElement("img");
+      img.src = "img/symbol/" + encodeURIComponent(book.b_typ) + ".png";
+      img.alt = book.b_typ;
+      img.width = 72; 
+      img.height = 72;
+      img.style.height = "auto";
+      img.onerror = () => img.remove();
       rightDiv.appendChild(img); 
   }
 

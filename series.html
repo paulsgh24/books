@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 
 <link rel="manifest" href="manifest.webmanifest">
-<script>if ('serviceWorker' in navigator) {navigator.serviceWorker.register('/books/sw.js');}</script>
+<script>if ('serviceWorker' in navigator) {navigator.serviceWorker.register('sw.js').then(() => console.log('Service Worker registered')).catch(console.error);}</script>
 <meta name="robots" content="noindex, nofollow">
 
 <title>Reihen</title>
@@ -295,7 +295,7 @@ function showBook(b){
   const right=document.createElement("div"); right.className="details-right";
   const fields={Reihe:b.b_series,Nummer:b.b_series_no,Jahr:b.b_year,Länge:b.b_length,Genres:b.b_genres,Sprecher:b.b_narrator};
   for(const k in fields){if(fields[k]&&String(fields[k]).trim()!==""){const d=document.createElement("div"); d.innerHTML=`<strong>${k}:</strong> ${escapeHtml(fields[k])}`; left.appendChild(d);}}
-  if(b.b_typ){const img=document.createElement("img"); img.src=`img/symbol/${b.b_typ.toLowerCase()}.png`; img.width=72; img.height=72; right.appendChild(img);}
+  if(b.b_typ){const img=document.createElement("img"); img.src = "img/symbol/" + encodeURIComponent(String(b.b_typ)) + ".png"; img.width=72; img.height=72; right.appendChild(img);}
   container.appendChild(left); container.appendChild(right); bookContent.appendChild(container);
 
   if(b.b_description && b.b_description.trim()!==""){const desc=document.createElement("div"); desc.className="descbox"; desc.textContent=b.b_description; bookContent.appendChild(desc);}
