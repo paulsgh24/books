@@ -1,11 +1,11 @@
 {
   "name": "Bücher",
-  "short_name": "App",
+  "short_name": "Bibliothek",
   "start_url": "/books/",
   "scope": "/books/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "background_color": "#1F1F1F",
+  "theme_color": "#1F1F1F",
   "icons": [
     {
       "src": "/books/img/symbol-192.png",
