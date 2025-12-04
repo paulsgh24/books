@@ -28,6 +28,10 @@ h1 a { font-size:1.6rem; margin-left:10px; text-decoration:none; color:inherit; 
   align-items:center;
   justify-content:center;
   color:inherit;
+  position:absolute; /* oben rechts fixieren */
+  top:16px;
+  right:20px;
+  z-index:1001;
 }
 #darkModeButton svg {
   width: 24px;      /* feste Breite */
@@ -143,30 +147,26 @@ body.dark .author-books a.book-link-detail { color: white; }
   width: auto;
 }
 
-/* === Hintergrundfarbe Bereich über Tabelle === */
 body, h1, .column-options, .topbar {
-  background-color: #FCFCFC; /* Light Mode Standard */
-  color: #000; /* Text schwarz im Light Mode */
+  background-color:#FCFCFC;
+  color:#000;
   transition: background-color .3s, color .3s;
 }
 body.dark, body.dark h1, body.dark .column-options, body.dark .topbar {
-  background-color: #212330; /* Dark Mode */
-  color: #fff; /* Text weiß im Dark Mode */
+  background-color:#212330;
+  color:#fff;
 }
 
-/* === Tabellenhintergrund inkl. Überschriften === */
 #bookTable_wrapper, #bookTable, #bookTable th, #bookTable td {
-  background-color: #EAEDFC; /* Light Mode */
-  color: #000;
+  background-color:#EAEDFC;
+  color:#000;
   transition: background-color .3s, color .3s;
 }
-body.dark #bookTable_wrapper,
-body.dark #bookTable,
-body.dark #bookTable th,
-body.dark #bookTable td {
-  background-color: #171A23; /* Dark Mode */
-  color: #fff;
+body.dark #bookTable_wrapper, body.dark #bookTable, body.dark #bookTable th, body.dark #bookTable td {
+  background-color:#171A23;
+  color:#fff;
 }
+
 
 /* Optional: Hover-Effekt für Zeilen */
 #bookTable tbody tr:hover {
@@ -175,9 +175,9 @@ body.dark #bookTable td {
 body.dark #bookTable tbody tr:hover {
   background-color: rgba(255,255,255,0.05); /* Dark Mode */
 }
-
 </style>
 </head>
+
 <body>
 <h1>
 Bücher

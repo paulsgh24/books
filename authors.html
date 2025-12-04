@@ -120,6 +120,23 @@ td[data-label="Name"] { font-weight: bold; }
   td::before { content: attr(data-label); flex:0 0 35%; font-weight:bold; white-space:normal; word-wrap:break-word; border:none !important; }
   td img.list-cover { flex:0 0 auto; width:90px; height:auto; max-height:150px; object-fit:cover; }
   td > * { flex:1; }
+
+  h1 {
+    flex-direction: row;       /* Titel + Links + Button in einer Reihe */
+    align-items: flex-start;
+    flex-wrap: wrap;           /* Zeilenumbruch bei Bedarf */
+    gap: 10px;
+  }
+
+  .link-column {
+    display: flex;
+    flex-direction: column;    /* Links untereinander */
+    gap: 4px;
+  }
+
+  #darkModeButton {
+    margin-left: auto;         /* bleibt rechts */
+  }
 }
 
 /* === Tabellenhintergrund inkl. Überschriften === */
@@ -177,10 +194,15 @@ body.dark .author-books a.book-link-detail { color:white; }
 </head>
 
 <body>
-<h1>Autoren
-<a href="index.html">Bücher</a>
-<a href="series.html">Reihen</a>
+<h1>
+  Autoren
+  <span class="link-column">
+    <a href="index.html">Bücher</a>
+    <a href="series.html">Reihen</a>
+  </span>
+  <button id="darkModeButton"></button>
 </h1>
+
 
 <button id="darkModeButton"></button>
 <table id="authorTable" class="display"></table>
