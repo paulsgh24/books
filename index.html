@@ -16,22 +16,21 @@
 <style>
 :root { --panel-min-width: 300px; --panel-max-ratio: 0.8; }
 body { font-family: 'Open Sans', sans-serif; padding:0;margin:0; transition: background-color .3s, color .3s; }
-h1 { font-size: 2.2rem; font-weight:700; display:flex; align-items:center; gap:15px; margin:16px 20px; }
+h1 { font-size: 2.2rem; font-weight:700; display:flex; align-items:center; gap:15px; margin:16px 20px; padding-right: 60px; flex-wrap: wrap; }
 h1 a { font-size:1.6rem; margin-left:10px; text-decoration:none; color:inherit; }
 #darkModeButton {
-  margin-left:auto;
-  border:none;
-  background:none;
-  cursor:pointer;
-  padding:6px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  color:inherit;
-  position:absolute; /* oben rechts fixieren */
-  top:16px;
-  right:20px;
-  z-index:1001;
+  position: absolute;   /* fixiert oben rechts */
+  top: 16px;
+  right: 20px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  z-index: 1001;
 }
 #darkModeButton svg {
   width: 24px;      /* feste Breite */
@@ -96,6 +95,13 @@ body.dark .author-link { color:white; }
   #bookTable td > * { flex:1; }
 }
 
+@media(max-width:500px){
+  h1 {
+    gap: 10px;
+    font-size: 1.8rem;
+    padding-right: 60px; /* weiterhin Platz für Button */
+  }
+}
 body.dark { background-color:#121212; color:#e0e0e0; }
 body.dark #darkModeButton { background:none; color:#fff; }
 body.dark .detail-panel { background:#1e1e1e; color:#e0e0e0; }
@@ -180,9 +186,9 @@ body.dark #bookTable tbody tr:hover {
 
 <body>
 <h1>
-Bücher
-<a href="authors.html">Autoren</a>
-<a href="series.html">Reihen</a>
+  Bücher
+  <a href="authors.html">Autoren</a>
+  <a href="series.html">Reihen</a>
 </h1>
 
 <button id="darkModeButton"></button>
